@@ -3,10 +3,8 @@
 ## One-Line Install Command
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/indo-stock-monitor/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Dutasampolaen/idxbadnewz/main/install.sh | bash
 ```
-
-**⚠️ Important:** Replace `YOUR_USERNAME` with your actual GitHub username after pushing the code.
 
 ---
 
@@ -17,8 +15,8 @@ For security, it's better to clone the repository and inspect the code before ru
 ### Option 1: HTTPS Clone (Recommended for most users)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/indo-stock-monitor.git
-cd indo-stock-monitor
+git clone https://github.com/Dutasampolaen/idxbadnewz.git
+cd idxbadnewz
 chmod +x install.sh
 ./install.sh
 ```
@@ -26,8 +24,8 @@ chmod +x install.sh
 ### Option 2: SSH Clone (If you have SSH keys set up)
 
 ```bash
-git clone git@github.com:YOUR_USERNAME/indo-stock-monitor.git
-cd indo-stock-monitor
+git clone git@github.com:Dutasampolaen/idxbadnewz.git
+cd idxbadnewz
 chmod +x install.sh
 ./install.sh
 ```
@@ -35,9 +33,9 @@ chmod +x install.sh
 ### Option 3: Download ZIP (No git required)
 
 ```bash
-wget https://github.com/YOUR_USERNAME/indo-stock-monitor/archive/refs/heads/main.zip
+wget https://github.com/Dutasampolaen/idxbadnewz/archive/refs/heads/main.zip
 unzip main.zip
-cd indo-stock-monitor-main
+cd idxbadnewz-main
 chmod +x install.sh
 ./install.sh
 ```
@@ -67,8 +65,8 @@ ollama pull qwen2.5:7b
 ### 2. Clone Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/indo-stock-monitor.git
-cd indo-stock-monitor
+git clone https://github.com/Dutasampolaen/idxbadnewz.git
+cd idxbadnewz
 ```
 
 ### 3. Run Installer
@@ -241,7 +239,7 @@ sudo systemctl restart ollama
 To update to the latest version:
 
 ```bash
-cd ~/indo-stock-monitor  # Or wherever you cloned it
+cd ~/idxbadnewz  # Or wherever you cloned it
 git pull origin main
 cd /opt/indo_badnews
 
@@ -251,7 +249,7 @@ cp bot_watchlist.py bot_watchlist.py.bak
 cp volume_screener.py volume_screener.py.bak
 
 # Copy new versions
-cp ~/indo-stock-monitor/*.py /opt/indo_badnews/
+cp ~/idxbadnewz/*.py /opt/indo_badnews/
 
 # Restart services
 sudo systemctl restart indo_badnews_bot
@@ -274,32 +272,7 @@ sudo systemctl daemon-reload
 sudo rm -rf /opt/indo_badnews
 
 # Remove cloned repository (optional)
-rm -rf ~/indo-stock-monitor
-```
-
----
-
-## For Repository Owner: Pushing to GitHub
-
-If you're setting up the repository for the first time:
-
-```bash
-# Initialize git (if not already)
-cd /tmp/cc-agent/60593544/project
-git init
-
-# Add files
-git add .
-
-# Commit
-git commit -m "Initial commit: Indonesian Stock Monitoring Stack"
-
-# Create repository on GitHub first, then:
-git remote add origin https://github.com/YOUR_USERNAME/indo-stock-monitor.git
-
-# Push
-git branch -M main
-git push -u origin main
+rm -rf ~/idxbadnewz
 ```
 
 ---
@@ -322,7 +295,7 @@ git push -u origin main
 ## Repository Structure
 
 ```
-indo-stock-monitor/
+idxbadnewz/
 ├── README.md                  # Main documentation
 ├── QUICKSTART.md             # Fast setup guide
 ├── INSTALL_FROM_GITHUB.md    # This file

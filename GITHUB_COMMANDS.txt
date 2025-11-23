@@ -2,21 +2,21 @@
 GITHUB INSTALLATION - COPY-PASTE COMMANDS
 ================================================================================
 
-⚠️  IMPORTANT: Replace YOUR_USERNAME with your GitHub username after pushing!
+Repository: https://github.com/Dutasampolaen/idxbadnewz
 
 ────────────────────────────────────────────────────────────────────────────
 🚀 FASTEST METHOD (One-Line Install)
 ────────────────────────────────────────────────────────────────────────────
 
-bash <(curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/indo-stock-monitor/main/quick-install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Dutasampolaen/idxbadnewz/main/quick-install.sh)
 
 
 ────────────────────────────────────────────────────────────────────────────
 ✅ RECOMMENDED METHOD (Clone First, Inspect, Then Install)
 ────────────────────────────────────────────────────────────────────────────
 
-git clone https://github.com/YOUR_USERNAME/indo-stock-monitor.git
-cd indo-stock-monitor
+git clone https://github.com/Dutasampolaen/idxbadnewz.git
+cd idxbadnewz
 chmod +x install.sh
 ./install.sh
 
@@ -29,8 +29,8 @@ sudo apt update && \
 sudo apt install -y git python3 python3-venv python3-pip curl && \
 curl -fsSL https://ollama.com/install.sh | sh && \
 ollama pull qwen2.5:7b && \
-git clone https://github.com/YOUR_USERNAME/indo-stock-monitor.git && \
-cd indo-stock-monitor && \
+git clone https://github.com/Dutasampolaen/idxbadnewz.git && \
+cd idxbadnewz && \
 chmod +x install.sh && \
 ./install.sh
 
@@ -84,7 +84,7 @@ sudo journalctl -u 'indo_*' -p err --since today
 🔄 UPDATE COMMANDS (Pull Latest Changes)
 ────────────────────────────────────────────────────────────────────────────
 
-cd ~/indo-stock-monitor
+cd ~/idxbadnewz
 git pull origin main
 sudo cp *.py /opt/indo_badnews/
 sudo systemctl restart indo_badnews_bot
@@ -99,20 +99,7 @@ sudo systemctl disable indo_badnews_bot indo_badnews.timer indo_volume_screener.
 sudo rm /etc/systemd/system/indo_*
 sudo systemctl daemon-reload
 sudo rm -rf /opt/indo_badnews
-rm -rf ~/indo-stock-monitor
-
-
-────────────────────────────────────────────────────────────────────────────
-📝 FOR REPO OWNER: PUSH TO GITHUB
-────────────────────────────────────────────────────────────────────────────
-
-# From project directory
-git init
-git add .
-git commit -m "Initial commit: Indonesian Stock Monitoring Stack"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/indo-stock-monitor.git
-git push -u origin main
+rm -rf ~/idxbadnewz
 
 
 ================================================================================
@@ -120,7 +107,7 @@ TELEGRAM BOT COMMANDS (After Installation)
 ================================================================================
 
 /wl                  Show your watchlist
-/wl BBRI TLKM       Add tickers to watchlist  
+/wl BBRI TLKM       Add tickers to watchlist
 /unwl BBRI          Remove tickers from watchlist
 /help               Show help message
 
@@ -143,22 +130,10 @@ SUPPORT & DOCUMENTATION
 
 After installation, read these files in order:
 1. INDEX.md - Documentation navigation
-2. QUICKSTART.md - 15-minute setup guide  
+2. QUICKSTART.md - 15-minute setup guide
 3. QUICK_REFERENCE.txt - Command reference (bookmark this!)
 
 For troubleshooting: TESTING.md and QUICK_REFERENCE.txt
-
-
-================================================================================
-EXAMPLE WITH ACTUAL USERNAME (Replace "johndoe" with yours)
-================================================================================
-
-git clone https://github.com/johndoe/indo-stock-monitor.git
-cd indo-stock-monitor
-chmod +x install.sh
-./install.sh
-sudo nano /opt/indo_badnews/.env
-sudo systemctl enable --now indo_badnews_bot.service indo_badnews.timer indo_volume_screener.timer
 
 
 ================================================================================

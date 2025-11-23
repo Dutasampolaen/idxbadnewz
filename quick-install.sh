@@ -2,8 +2,8 @@
 # One-line installer for Indonesian Stock Monitoring Stack
 set -e
 
-REPO_URL="https://github.com/YOUR_USERNAME/indo-stock-monitor"
-INSTALL_DIR="$HOME/indo-stock-monitor"
+REPO_URL="https://github.com/Dutasampolaen/idxbadnewz"
+INSTALL_DIR="$HOME/idxbadnewz"
 
 echo "================================================"
 echo "Indonesian Stock Monitoring Stack - Quick Install"
