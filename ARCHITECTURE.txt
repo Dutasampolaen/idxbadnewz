@@ -1,0 +1,381 @@
+================================================================================
+INDONESIAN STOCK MONITORING STACK - SYSTEM ARCHITECTURE
+================================================================================
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          USER INTERACTION LAYER                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+    Telegram User Interface
+    ├── /wl                  → View watchlist
+    ├── /wl BBRI TLKM       → Add tickers
+    ├── /unwl BBRI          → Remove tickers
+    └── /help               → Get help
+
+           ↓ Commands                     ↑ Alerts
+           ↓                              ↑
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          APPLICATION LAYER                               │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────┐  ┌──────────────────┐  ┌─────────────────────────┐
+│  Watchlist Bot      │  │  News Watcher    │  │  Volume Screener        │
+│  bot_watchlist.py   │  │  news_watcher.py │  │  volume_screener.py     │
+├─────────────────────┤  ├──────────────────┤  ├─────────────────────────┤
+│ Type: Long-running  │  │ Type: Scheduled  │  │ Type: Scheduled         │
+│ Trigger: Always on  │  │ Timer: 10 min    │  │ Timer: Mon-Fri 16:20WIB │
+│ Service: systemd    │  │ Slots: WIB aware │  │ Service: systemd        │
+├─────────────────────┤  ├──────────────────┤  ├─────────────────────────┤
+│ Features:           │  │ Features:        │  │ Features:               │
+│ • Command parsing   │  │ • Multi-source   │  │ • 3x volume spike       │
+│ • Watchlist CRUD    │  │ • AI classify    │  │ • SETUP/WAIT classify   │
+│ • Per-chat storage  │  │ • Deduplicate    │  │ • Special patterns      │
+│ • Auto-restart      │  │ • Slot tracking  │  │ • Yahoo Finance         │
+└──────────┬──────────┘  └────────┬─────────┘  └───────────┬─────────────┘
+           │                      │                         │
+           │ Updates              │ Reads                   │ Reads
+           ↓                      ↓                         ↓
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          PERSISTENCE LAYER                               │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────┐  ┌─────────────┐  ┌──────────────┐  ┌─────────────────┐
+│ watchlist.json │  │ state.json  │  │bot_state.json│  │ Ticker Files    │
+├────────────────┤  ├─────────────┤  ├──────────────┤  ├─────────────────┤
+│ Per-chat       │  │ News state: │  │ Bot update   │  │ ihsg_tickers.txt│
+│ ticker lists   │  │ • seen IDs  │  │ offset       │  │ screener_*.txt  │
+│                │  │ • last_slot │  │              │  │                 │
+└────────────────┘  └─────────────┘  └──────────────┘  └─────────────────┘
+
+           ↑                      ↑                         ↑
+           │ Reads/Writes         │ Reads                   │ Reads
+           │                      │                         │
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          EXTERNAL DATA LAYER                             │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────┐  ┌───────────────┐  ┌──────────────┐  ┌─────────────┐
+│ Marketaux API   │  │ Google News   │  │ CNBC Indo    │  │Yahoo Finance│
+│ (news)          │  │ RSS (news)    │  │ RSS (news)   │  │ (OHLCV)     │
+└─────────────────┘  └───────────────┘  └──────────────┘  └─────────────┘
+
+           ↑                      ↑                         ↑
+           │ HTTP API             │ RSS Feeds               │ yfinance lib
+           │                      │                         │
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          AI PROCESSING LAYER                             │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Ollama (Local)                                                         │
+│  ├── Model: qwen2.5:7b                                                  │
+│  ├── Endpoint: http://localhost:11434/api/generate                     │
+│  └── Task: Classify news as BAD/OK                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+           ↑
+           │ HTTP POST (non-streaming)
+           │
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          SYSTEM LAYER (Ubuntu)                           │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Systemd Units                                                          │
+│  ├── indo_badnews_bot.service     (Type: simple, Restart: always)      │
+│  ├── indo_badnews.service         (Type: oneshot)                      │
+│  ├── indo_badnews.timer           (Interval: 10min)                    │
+│  ├── indo_volume_screener.service (Type: oneshot)                      │
+│  └── indo_volume_screener.timer   (Schedule: Mon-Fri 09:20 UTC)        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Python Virtual Environment                                             │
+│  /opt/indo_badnews/venv/                                                │
+│  ├── Python 3.8+                                                        │
+│  ├── python-telegram-bot==20.7                                          │
+│  ├── feedparser==6.0.10                                                 │
+│  ├── requests==2.31.0                                                   │
+│  ├── yfinance==0.2.32                                                   │
+│  └── ... (see requirements.txt)                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+                             TIMING DIAGRAM
+================================================================================
+
+WIB (UTC+7) Timeline - Typical Trading Day:
+
+00:00 ─────────────────────────────────────────────────────────────────────
+      │
+      │  [News Timer runs every 10 min but exits - outside slots]
+      │
+08:45 ─┬─ SLOT 1 START (Pre-Market) ──────────────────────────────────────
+      │  └→ News scanner EXECUTES
+      │     • Fetches articles
+      │     • AI classification
+      │     • Sends alerts
+09:30 ─┴─ SLOT 1 END ──────────────────────────────────────────────────────
+      │
+      │  [News Timer runs every 10 min but exits - outside slots]
+      │
+12:00 ─┬─ SLOT 2 START (Midday) ───────────────────────────────────────────
+      │  └→ News scanner EXECUTES
+      │     • Fetches articles
+      │     • AI classification
+      │     • Sends alerts
+13:30 ─┴─ SLOT 2 END ──────────────────────────────────────────────────────
+      │
+      │  [News Timer runs every 10 min but exits - outside slots]
+      │
+15:15 ─┬─ SLOT 3 START (Post-Market) ──────────────────────────────────────
+      │  └→ News scanner EXECUTES
+      │     • Fetches articles
+      │     • AI classification
+      │     • Sends alerts
+16:00 ─┴─ SLOT 3 END ──────────────────────────────────────────────────────
+      │
+16:20 ─┬─ VOLUME SCREENER EXECUTES (Mon-Fri only) ─────────────────────────
+      │  └→ Volume screener runs
+      │     • Fetches OHLCV data
+      │     • Detects 3x spikes
+      │     • Classifies SETUP/WAIT
+      │     • Sends alerts
+      │
+23:59 ─────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+                          DATA FLOW SEQUENCE
+================================================================================
+
+1. USER ADDS WATCHLIST TICKER:
+
+   User (Telegram) ──→ /wl BBRI
+                       │
+                       ↓
+   Bot receives ──────→ Parse command
+                       │
+                       ↓
+   Update state ──────→ watchlist.json += {chat_id: ["BBRI.JK"]}
+                       │
+                       ↓
+   Respond ────────────→ "✅ Added 1 ticker(s)"
+
+
+2. NEWS SCANNER EXECUTION (During Slot):
+
+   Timer triggers ────→ Check WIB time
+                       │
+                       ↓
+   Is in slot? ────────→ YES → Load state (last_slot check)
+                       │
+                       ↓
+   Already ran? ───────→ NO → Load watchlist
+                       │
+                       ↓
+   Fetch articles ─────→ • Marketaux API
+                         • Google News RSS
+                         • CNBC Indonesia RSS
+                         • Google RSS (per watchlist ticker)
+                       │
+                       ↓
+   Filter ─────────────→ • Remove seen (state.json)
+                         • Check age (3 days)
+                       │
+                       ↓
+   Classify ───────────→ For each article:
+                         • Check negative keywords
+                         • If no hit → Ollama AI
+                       │
+                       ↓
+   Select top 5 ───────→ Sort by BAD classification
+                       │
+                       ↓
+   Send Telegram ──────→ Alert message
+                       │
+                       ↓
+   Save state ─────────→ state.json (seen IDs + slot_id)
+
+
+3. VOLUME SCREENER EXECUTION (16:20 WIB):
+
+   Timer triggers ─────→ Load watchlist
+                       │
+                       ↓
+   Build universe ─────→ • All watchlist tickers
+                         • IHSG tickers
+                         • Screener tickers
+                         • Limit to 120
+                       │
+                       ↓
+   For each ticker ────→ Fetch OHLCV (1 month)
+                       │
+                       ↓
+   Detect spike ───────→ • Volume ≥ 3x avg(20 days)
+                         • Price up ≥ 2%
+                       │
+                       ↓
+   Classify ───────────→ • SETUP: Future 3+ days, all ≤60% spike
+                         • WAIT: Otherwise
+                       │
+                       ↓
+   Watchlist patterns ─→ • Price↑ Volume↓ (≥1%, ≥30%)
+                         • Price↓ Volume↑ (≥1%, ≥30%)
+                       │
+                       ↓
+   Send Telegram ──────→ • SETUP signals
+                         • Watchlist patterns
+
+
+================================================================================
+                          ERROR HANDLING FLOW
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Component Level Error Handling                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Bot (bot_watchlist.py):
+├── Outer loop: Infinite retry with 30s delay
+├── Polling errors: Log and continue
+└── Command errors: Reply to user with error message
+
+News Watcher (news_watcher.py):
+├── Outside slot: Exit cleanly (not an error)
+├── API failures: Log, continue with other sources
+├── Ollama failures: Default to OK classification
+└── Telegram failures: Log, continue (don't block execution)
+
+Volume Screener (volume_screener.py):
+├── Yahoo Finance failures: Skip ticker, log, continue
+├── Invalid tickers: Skip, continue
+└── Telegram failures: Log, continue
+
+Systemd:
+├── Bot crashes: Restart after 10s (Restart=always)
+├── Scanner fails: Next timer run (no retry)
+└── Screener fails: Next timer run (no retry)
+
+
+================================================================================
+                          CONFIGURATION CASCADE
+================================================================================
+
+Environment Variables (.env)
+         ↓
+Application Code (*.py)
+         ↓
+Systemd Units (*.service)
+         ↓
+Runtime Execution
+
+Priority:
+1. Environment variables (.env)
+2. Code defaults (in *.py)
+3. Systemd environment (Environment=)
+
+
+================================================================================
+                          LOG AGGREGATION FLOW
+================================================================================
+
+Python Scripts (stdout/stderr)
+         ↓
+Systemd (journald)
+         ↓
+journalctl command
+         ↓
+User viewing logs
+
+Filter options:
+• By unit: -u indo_badnews_bot
+• By priority: -p err
+• By time: --since today
+• Real-time: -f
+• Combined: -u 'indo_*'
+
+
+================================================================================
+                          SECURITY BOUNDARIES
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│  PUBLIC INTERNET                                                        │
+│  ├── Telegram Bot API (HTTPS, authenticated with bot token)            │
+│  ├── Marketaux API (HTTPS, authenticated with API key)                 │
+│  ├── Google News RSS (HTTPS, public)                                   │
+│  ├── CNBC RSS (HTTPS, public)                                          │
+│  └── Yahoo Finance (HTTPS via yfinance, public)                        │
+└─────────────────────────────────────────────────────────────────────────┘
+                                ↕ (firewall)
+┌─────────────────────────────────────────────────────────────────────────┐
+│  LOCALHOST (Ubuntu Server)                                              │
+│  ├── Python scripts (user permissions, no root)                        │
+│  ├── Ollama API (localhost:11434, not exposed)                         │
+│  ├── .env file (chmod 600 recommended)                                 │
+│  └── State files (user readable/writable)                              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Secrets stored in: /opt/indo_badnews/.env
+Never logged: TELEGRAM_BOT_TOKEN, MARKETAUX_API_KEY
+Never committed: .env (add to .gitignore)
+
+
+================================================================================
+                          SCALABILITY NOTES
+================================================================================
+
+Current Limits:
+├── Tickers per run: 120 (MAX_TICKERS_PER_RUN)
+├── News per alert: 5 (hardcoded in news_watcher.py)
+├── Seen articles: 1000 (truncated in state.json)
+└── Watchlist: Unlimited per chat
+
+Bottlenecks:
+├── Yahoo Finance: Rate limits (~200 req/min)
+├── Ollama: CPU/GPU bound (sequential classification)
+├── Marketaux: Free tier limits (100 req/day)
+└── Telegram: 30 messages/second (not reached)
+
+Optimization Strategies:
+├── Reduce MAX_TICKERS_PER_RUN
+├── Use smaller AI model (qwen2.5:3b)
+├── Increase timer intervals
+└── Cache Yahoo Finance data
+
+
+================================================================================
+                          MAINTENANCE SCHEDULE
+================================================================================
+
+Daily:
+└── [Automatic] News scanner runs during slots
+└── [Automatic] Volume screener runs at 16:20 WIB (Mon-Fri)
+
+Weekly:
+└── [Manual] Check logs for errors: journalctl -u 'indo_*' --since "7 days ago" -p err
+
+Monthly:
+├── [Manual] Update Python packages: pip install --upgrade -r requirements.txt
+├── [Manual] Review and cleanup state files (if >1MB)
+└── [Manual] Backup configuration: tar -czf backup.tar.gz /opt/indo_badnews
+
+Quarterly:
+├── [Manual] Update Ollama model: ollama pull qwen2.5:7b
+└── [Manual] Review and optimize ticker lists
+
+As Needed:
+├── Add/remove watchlist tickers (via Telegram)
+├── Adjust configuration (.env)
+└── Update Python scripts
+
+
+================================================================================
+EOF

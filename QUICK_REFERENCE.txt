@@ -1,0 +1,306 @@
+================================================================================
+INDONESIAN STOCK MONITORING STACK - QUICK REFERENCE CARD
+================================================================================
+
+INSTALLATION (ONE-TIME)
+================================================================================
+cd /tmp/cc-agent/60593544/project
+./install.sh
+sudo nano /opt/indo_badnews/.env  # Add: BOT_TOKEN, CHAT_ID, MARKETAUX_KEY
+sudo systemctl enable --now indo_badnews_bot.service
+sudo systemctl enable --now indo_badnews.timer
+sudo systemctl enable --now indo_volume_screener.timer
+
+TELEGRAM BOT COMMANDS
+================================================================================
+/wl                          Show your watchlist
+/wl BBRI TLKM GOTO          Add tickers to watchlist
+/unwl BBRI TLKM             Remove tickers from watchlist
+/help                        Show help message
+
+SYSTEMD SERVICES
+================================================================================
+Service Status:
+  sudo systemctl status indo_badnews_bot       # Watchlist bot
+  sudo systemctl status indo_badnews.timer     # News scanner timer
+  sudo systemctl status indo_volume_screener.timer  # Volume screener timer
+
+Start/Stop/Restart:
+  sudo systemctl start indo_badnews_bot
+  sudo systemctl stop indo_badnews_bot
+  sudo systemctl restart indo_badnews_bot
+
+Enable/Disable:
+  sudo systemctl enable indo_badnews_bot       # Auto-start on boot
+  sudo systemctl disable indo_badnews_bot      # Don't auto-start
+
+Timer Management:
+  sudo systemctl list-timers indo_*            # Show next run times
+  sudo systemctl start indo_badnews.service    # Manually trigger news scan
+  sudo systemctl start indo_volume_screener.service  # Manually trigger screener
+
+VIEWING LOGS
+================================================================================
+Real-time (follow):
+  sudo journalctl -u indo_badnews_bot -f       # Bot logs (Ctrl+C to stop)
+  sudo journalctl -u indo_badnews -f           # News scanner logs
+  sudo journalctl -u indo_volume_screener -f   # Volume screener logs
+  sudo journalctl -u 'indo_*' -f               # All services
+
+Recent logs:
+  sudo journalctl -u indo_badnews_bot -n 50    # Last 50 lines
+  sudo journalctl -u indo_badnews -n 100       # Last 100 lines
+
+Filtered logs:
+  sudo journalctl -u 'indo_*' --since today    # Today's logs
+  sudo journalctl -u 'indo_*' --since "1 hour ago"  # Last hour
+  sudo journalctl -u 'indo_*' -p err           # Errors only
+
+MANUAL TESTING
+================================================================================
+Activate environment first:
+  cd /opt/indo_badnews
+  source venv/bin/activate
+
+Test news scanner (force run, bypasses slot check):
+  FORCE_RUN=1 python news_watcher.py
+
+Test volume screener:
+  python volume_screener.py
+
+Test bot (interactive, Ctrl+C to stop):
+  python bot_watchlist.py
+
+CONFIGURATION FILES
+================================================================================
+Main config:        /opt/indo_badnews/.env
+News state:         /opt/indo_badnews/state.json
+Watchlists:         /opt/indo_badnews/watchlist.json
+Bot state:          /opt/indo_badnews/bot_state.json
+IHSG tickers:       /opt/indo_badnews/ihsg_tickers.txt
+Additional tickers: /opt/indo_badnews/screener_tickers.txt
+
+Edit main config:
+  sudo nano /opt/indo_badnews/.env
+
+Edit ticker lists:
+  sudo nano /opt/indo_badnews/ihsg_tickers.txt
+  sudo nano /opt/indo_badnews/screener_tickers.txt
+
+TRADING SLOTS (WIB - When News Scanner Executes)
+================================================================================
+Slot 1: 08:45 - 09:30 WIB  (Pre-Market)
+Slot 2: 12:00 - 13:30 WIB  (Midday)
+Slot 3: 15:15 - 16:00 WIB  (Post-Market)
+
+Outside these times: Timer runs every 10 min but script exits immediately
+
+VOLUME SCREENER SCHEDULE
+================================================================================
+Monday - Friday: 16:20 WIB (09:20 UTC)
+Detects: 3x volume spikes with 2%+ price increase
+Reports: SETUP signals and watchlist patterns
+
+TROUBLESHOOTING
+================================================================================
+Bot not responding:
+  sudo systemctl restart indo_badnews_bot
+  sudo journalctl -u indo_badnews_bot -n 50
+
+No news alerts:
+  TZ=Asia/Jakarta date                         # Check if in trading slot
+  FORCE_RUN=1 python news_watcher.py          # Force run to test
+  sudo journalctl -u indo_badnews -n 50        # Check logs
+
+Volume screener errors:
+  python volume_screener.py                    # Test manually
+  # If Yahoo errors: reduce MAX_TICKERS_PER_RUN in .env
+
+Ollama not working:
+  systemctl status ollama
+  curl http://localhost:11434/api/generate -d '{"model":"qwen2.5:7b","prompt":"test","stream":false}'
+
+Timer not triggering:
+  sudo systemctl daemon-reload
+  sudo systemctl restart indo_badnews.timer
+  sudo systemctl list-timers indo_*
+
+COMMON TASKS
+================================================================================
+Add tickers via Telegram:
+  /wl BBRI TLKM GOTO
+
+Add tickers via file:
+  sudo nano /opt/indo_badnews/ihsg_tickers.txt
+  # Add one ticker per line (e.g., BBRI.JK)
+
+Check what's being monitored:
+  /wl                                          # In Telegram
+  cat /opt/indo_badnews/watchlist.json | jq   # From terminal
+
+View recent news scan results:
+  sudo journalctl -u indo_badnews --since "1 hour ago"
+
+View recent volume scan results:
+  sudo journalctl -u indo_volume_screener --since today
+
+Check system health:
+  sudo systemctl status indo_badnews_bot
+  sudo systemctl list-timers indo_*
+  df -h /opt/indo_badnews                      # Disk space
+
+BACKUP
+================================================================================
+Quick backup:
+  tar -czf ~/indo-backup-$(date +%Y%m%d).tar.gz \
+    /opt/indo_badnews/.env \
+    /opt/indo_badnews/*.json \
+    /opt/indo_badnews/*.txt \
+    /etc/systemd/system/indo_*
+
+Restore:
+  tar -xzf ~/indo-backup-YYYYMMDD.tar.gz -C /
+  sudo systemctl daemon-reload
+  sudo systemctl restart indo_badnews_bot
+
+UPDATE CONFIGURATION
+================================================================================
+After editing .env:
+  sudo systemctl restart indo_badnews_bot
+
+After editing systemd units:
+  sudo systemctl daemon-reload
+  sudo systemctl restart indo_badnews_bot     # or relevant service
+
+After updating Python scripts:
+  sudo systemctl restart indo_badnews_bot
+
+UNINSTALL
+================================================================================
+sudo systemctl stop indo_badnews_bot indo_badnews.timer indo_volume_screener.timer
+sudo systemctl disable indo_badnews_bot indo_badnews.timer indo_volume_screener.timer
+sudo rm /etc/systemd/system/indo_*
+sudo systemctl daemon-reload
+sudo rm -rf /opt/indo_badnews
+
+FILE LOCATIONS
+================================================================================
+Application:   /opt/indo_badnews/
+Services:      /etc/systemd/system/indo_*
+Logs:          journalctl (systemd journal)
+Documentation: /tmp/cc-agent/60593544/project/*.md
+
+ENVIRONMENT VARIABLES
+================================================================================
+Required:
+  TELEGRAM_BOT_TOKEN        # From @BotFather
+  TELEGRAM_CHAT_ID          # Your chat ID
+  MARKETAUX_API_KEY         # From marketaux.com
+
+Optional (with defaults):
+  OLLAMA_API_URL           # Default: http://localhost:11434/api/generate
+  OLLAMA_MODEL             # Default: qwen2.5:7b
+  MAX_NEWS_AGE_DAYS        # Default: 3
+  MAX_TICKERS_PER_RUN      # Default: 120
+  TIMEZONE                 # Default: Asia/Jakarta
+
+PERFORMANCE TUNING
+================================================================================
+If Yahoo Finance rate limits:
+  sudo nano /opt/indo_badnews/.env
+  # Set MAX_TICKERS_PER_RUN=50
+  sudo systemctl restart indo_badnews_bot
+
+If Ollama too slow:
+  sudo nano /opt/indo_badnews/.env
+  # Set OLLAMA_MODEL=qwen2.5:3b
+  ollama pull qwen2.5:3b
+
+If too many alerts:
+  # Reduce news sources in news_watcher.py (edit and restart)
+  # Or increase MAX_NEWS_AGE_DAYS in .env
+
+MONITORING COMMANDS
+================================================================================
+Service health:
+  sudo systemctl is-active indo_badnews_bot
+  sudo systemctl is-failed indo_badnews_bot
+
+Resource usage:
+  top -p $(pgrep -f bot_watchlist)            # Bot CPU/RAM
+  du -sh /opt/indo_badnews                    # Disk usage
+
+Error count today:
+  sudo journalctl -u 'indo_*' --since today -p err | wc -l
+
+Last run times:
+  sudo journalctl -u indo_badnews -n 1 --no-pager | head -1
+  sudo journalctl -u indo_volume_screener -n 1 --no-pager | head -1
+
+SUPPORT & DOCUMENTATION
+================================================================================
+Quick start:    QUICKSTART.md (15-minute setup)
+Full docs:      README.md (complete documentation)
+Testing:        TESTING.md (comprehensive tests)
+Deployment:     DEPLOYMENT.md (production guide)
+Architecture:   ARCHITECTURE.txt (system design)
+Checklist:      CHECKLIST.md (installation checklist)
+
+KEYBOARD SHORTCUTS IN LOGS
+================================================================================
+Ctrl+C          Stop following logs (journalctl -f)
+Shift+PgUp      Scroll up in terminal
+Shift+PgDn      Scroll down in terminal
+q               Quit journalctl (when not following)
+/pattern        Search in journalctl
+n               Next search result
+Shift+N         Previous search result
+
+USEFUL ALIASES (Add to ~/.bashrc)
+================================================================================
+alias indo-logs='sudo journalctl -u "indo_*" -f'
+alias indo-status='sudo systemctl status indo_badnews_bot'
+alias indo-timers='sudo systemctl list-timers indo_*'
+alias indo-restart='sudo systemctl restart indo_badnews_bot'
+alias indo-cd='cd /opt/indo_badnews'
+alias indo-env='cd /opt/indo_badnews && source venv/bin/activate'
+
+After adding, run: source ~/.bashrc
+
+QUICK HEALTH CHECK SCRIPT
+================================================================================
+cat > ~/indo-health.sh <<'EOF'
+#!/bin/bash
+echo "=== Indonesian Stock Monitor Health ==="
+echo "Bot: $(systemctl is-active indo_badnews_bot)"
+echo "News Timer: $(systemctl is-active indo_badnews.timer)"
+echo "Volume Timer: $(systemctl is-active indo_volume_screener.timer)"
+echo ""
+echo "Next Runs:"
+systemctl list-timers indo_* --no-pager | grep indo
+echo ""
+echo "Recent Errors:"
+sudo journalctl -u 'indo_*' --since "1 hour ago" -p err --no-pager | tail -5
+EOF
+chmod +x ~/indo-health.sh
+
+Run: ~/indo-health.sh
+
+EMERGENCY RESTART
+================================================================================
+sudo systemctl restart indo_badnews_bot
+sudo systemctl daemon-reload
+sudo systemctl restart indo_badnews.timer
+sudo systemctl restart indo_volume_screener.timer
+
+GETTING HELP
+================================================================================
+1. Check this reference card
+2. Check TROUBLESHOOTING section above
+3. View logs: sudo journalctl -u 'indo_*' -n 100
+4. Review TESTING.md for detailed tests
+5. Check Telegram bot with /wl command
+6. Test manually: FORCE_RUN=1 python news_watcher.py
+
+================================================================================
+EOF
